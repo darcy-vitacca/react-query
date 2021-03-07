@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, usePaginatedQuery } from "react-query";
+import { useQuery } from "react-query";
 import Planet from "./Planet";
 
 // const fetchPlanets = async () => {
@@ -14,9 +14,11 @@ import Planet from "./Planet";
 //   return res.json();
 // };
 const fetchPlanets3 = async ({ queryKey }) => {
+  console.log(queryKey);
+  const [_key, page] = queryKey;
+  console.log(page);
 
   const res = await fetch(`https://swapi.dev/api/planets/?page=${page}`);
-
   return res.json();
 };
 const Planets = () => {
@@ -35,11 +37,20 @@ const Planets = () => {
   //   const { data, status } = useQuery(["planets", page], fetchPlanets2);
 
   //Pagination
-  // with paginaiton instead of one data item we have two, resolvedData is the last successful data fetch that we have access to this is what is outputted, latestData is any data for any on going queries that isn't cached. They work by outputting reslovedData then if they request another page of data usePaginatedQuery will fetch that in the background for us. resolveData doesn't change latestData represents the new fetch while resolvedData doesn't change. While fetching it's undefined then becomes the new data we don't have. Once latestData is complete when put it under resolvedData
-  const { resolvedData, latestData, status } = usePaginatedQuery(
-    ["planets", page],
-    fetchPlanets3
-  );
+  // with paginaiton instead of one data item we have two, resolvedData is the last successful data fetch that we have access to this is what is outputted, latestData is any data for any on going queries that isn't cached. They work by outputting reslovedData then if they request another page of data usePaginatedQuery will fetch that in the background for us. resolveData doesn't change latestData represents the new fetch while resolvedData doesn't change. While fetching it's undefined then becomes the new data we don't have. Once latestData is complete when put it under resolvedData. We have to add keepPrevious data to get pagination effected
+  const {
+    isLoading,
+    isError,
+    error,
+    data,
+    isFetching,
+    isPreviousData,
+    status,
+  } = useQuery(["planets", page], fetchPlanets3, { keepPreviousData: true });
+
+  console.log(isPreviousData);
+  console.log(data);
+  console.log(page);
 
   //   });
   return (
@@ -51,12 +62,36 @@ const Planets = () => {
       {status === "loading" && <div>Loading....</div>}
       {status === "error" && <div>Error</div>}
       {status === "success" && (
-       
-        <div>
-          {resolvedData.results.map((planet) => {
-            return <Planet key={planet.name} planet={planet} />;
-          })}
-        </div>
+        <>
+          {/* This math old seciton inputs two numbers and take the biggest out of the two */}
+          <button
+            disabled={page === 1}
+            onClick={() => {
+              // setPage((old) => Math.max(old - 1, 1))
+              setPage((old) => Math.max(old - 1, 1));
+            }}
+          >
+            Previous Page
+          </button>
+          <button>{page}</button>
+          <button
+            disabled={isPreviousData || !data.hasMore}
+            // What this is saying is if we don't have data or don't have data on the next property then we will add a page number
+            onClick={() => {
+              console.log('click')
+              if (!isPreviousData && data.hasMore) {
+                setPage((old) => old + 1);
+              }
+            }}
+          >
+            Next Page
+          </button>
+          <div>
+            {data.results.map((planet) => {
+              return <Planet key={planet.name} planet={planet} />;
+            })}
+          </div>
+        </>
       )}
     </div>
   );
@@ -64,8 +99,10 @@ const Planets = () => {
 
 export default Planets;
 
- {/* <div>
+{
+  /* <div>
           {data.results.map((planet) => {
             return <Planet key={planet.name} planet={planet} />;
           })}
-        </div> */}
+        </div> */
+}
